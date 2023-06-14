@@ -1,9 +1,12 @@
 import * as fs from "fs/promises"
 import * as path from "path"
 import * as core from "@actions/core"
+import fetch from "node-fetch"
 import {readFile} from "fs/promises"
 import {HttpCachingChain, HttpChainClient} from "drand-client"
 import {select} from "./select"
+// @ts-ignore
+global.fetch = fetch
 
 main().catch(err => {
     console.error(err);
@@ -13,7 +16,7 @@ main().catch(err => {
 
 async function main(): Promise<void> {
     const inputDir = core.getInput("inputDir") ?? "."
-    const outputDir = core.getInput("ouputDir") ?? "."
+    const outputDir = core.getInput("outputDir") ?? "."
     const drawPrefix = core.getInput("drawPrefix") ?? "draw-"
     const drandURL = core.getInput("drandURL") ?? "https://api.drand.sh"
     const gitRepo = process.env.GITHUB_WORKSPACE
