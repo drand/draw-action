@@ -11120,6 +11120,8 @@ async function main() {
     console.log(`processing ${inputFile}`);
     const contents = await (0, import_promises.readFile)(path.join(gitRepo, inputDir, inputFile));
     const lines = contents.toString().split("\n");
+    console.log("lines");
+    console.log(lines);
     const selectionOutput = await select({
       count: 1,
       values: lines,
