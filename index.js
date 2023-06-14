@@ -2985,9 +2985,10 @@ async function main() {
   const outputDir = process.env.OUTPUT_DIR || ".";
   const drawPrefix = process.env.OUTPUT_PREFIX || "draw-";
   const drandURL = process.env.DRAND_URL || "https://api.drand.sh";
+  const gitRepo = process.env.GITHUB_WORKSPACE;
   const drandClient = new import_drand_client2.HttpChainClient(new import_drand_client2.HttpCachingChain(drandURL));
-  const inputFiles = await fs.readdir(path.join(__dirname, inputDir));
-  const outputFiles = await fs.readdir(path.join(__dirname, outputDir));
+  const inputFiles = await fs.readdir(path.join(gitRepo, inputDir));
+  const outputFiles = await fs.readdir(path.join(gitRepo, outputDir));
   for (let inputFile of inputFiles) {
     const outputFilename = `${drawPrefix}${inputFile}`;
     if (outputFiles.includes(outputFilename)) {
@@ -2995,14 +2996,14 @@ async function main() {
       continue;
     }
     console.log(`processing ${inputFile}`);
-    const contents = await (0, import_promises.readFile)(path.join(inputDir, inputFile));
+    const contents = await (0, import_promises.readFile)(path.join(gitRepo, inputDir, inputFile));
     const lines = contents.toString().split("\n");
     const selectionOutput = await select({
       count: 1,
       values: lines,
       drandClient
     });
-    await fs.writeFile(path.join(outputDir, outputFilename), JSON.stringify(selectionOutput));
+    await fs.writeFile(path.join(gitRepo, outputDir, outputFilename), JSON.stringify(selectionOutput));
     console.log(`created ${outputFilename}`);
   }
 }

@@ -15,10 +15,11 @@ async function main(): Promise<void> {
     const outputDir = process.env.OUTPUT_DIR || "."
     const drawPrefix = process.env.OUTPUT_PREFIX || "draw-"
     const drandURL = process.env.DRAND_URL || "https://api.drand.sh"
+    const gitRepo = process.env.GITHUB_WORKSPACE
     const drandClient = new HttpChainClient(new HttpCachingChain(drandURL))
 
-    const inputFiles = await fs.readdir(path.join(__dirname, inputDir))
-    const outputFiles = await fs.readdir(path.join(__dirname, outputDir))
+    const inputFiles = await fs.readdir(path.join(gitRepo, inputDir))
+    const outputFiles = await fs.readdir(path.join(gitRepo, outputDir))
 
     for (let inputFile of inputFiles) {
         // we don't want to redo draws that have already been done
@@ -29,14 +30,14 @@ async function main(): Promise<void> {
         }
 
         console.log(`processing ${inputFile}`)
-        const contents = await readFile(path.join(inputDir, inputFile))
+        const contents = await readFile(path.join(gitRepo, inputDir, inputFile))
         const lines = contents.toString().split("\n")
         const selectionOutput = await select({
             count: 1,
             values: lines,
             drandClient: drandClient
         })
-        await fs.writeFile(path.join(outputDir, outputFilename), JSON.stringify(selectionOutput))
+        await fs.writeFile(path.join(gitRepo, outputDir, outputFilename), JSON.stringify(selectionOutput))
         console.log(`created ${outputFilename}`)
     }
 }
