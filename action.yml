@@ -1,9 +1,6 @@
 name: "drand draw"
 description: "Draw items from a file using drand"
 author: "drand.love"
-branding:
-  icon: upload-cloud
-  color: green
 inputs:
   inputDir:
     description: "The directory of files you wish to choose randomly from."
