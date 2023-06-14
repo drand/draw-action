@@ -1,5 +1,6 @@
 import * as fs from "fs/promises"
 import * as path from "path"
+import * as core from "@actions/core"
 import {readFile} from "fs/promises"
 import {HttpCachingChain, HttpChainClient} from "drand-client"
 import {select} from "./select"
@@ -11,10 +12,10 @@ main().catch(err => {
 })
 
 async function main(): Promise<void> {
-    const inputDir = process.env.INPUT_DIR || "."
-    const outputDir = process.env.OUTPUT_DIR || "."
-    const drawPrefix = process.env.OUTPUT_PREFIX || "draw-"
-    const drandURL = process.env.DRAND_URL || "https://api.drand.sh"
+    const inputDir = core.getInput("inputDir") ?? "."
+    const outputDir = core.getInput("ouputDir") ?? "."
+    const drawPrefix = core.getInput("drawPrefix") ?? "draw-"
+    const drandURL = core.getInput("drandURL") ?? "https://api.drand.sh"
     const gitRepo = process.env.GITHUB_WORKSPACE
     const drandClient = new HttpChainClient(new HttpCachingChain(drandURL))
 
