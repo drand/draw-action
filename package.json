@@ -1,7 +1,7 @@
 {
   "name": "drand-draw-action",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.0.1",
+  "description": "a github action for drawing items from lists using drand",
   "main": "index.js",
   "scripts": {
     "build": "esbuild ./src/index.ts --bundle --platform=node --target=node19 --outfile=index.js",
