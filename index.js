@@ -2559,6 +2559,9 @@ var require_drand_client = __commonJS({
 
 // src/index.ts
 var fs = __toESM(require("fs/promises"));
+var path = __toESM(require("path"));
+var import_promises = require("fs/promises");
+var import_drand_client2 = __toESM(require_drand_client());
 
 // src/select.ts
 var import_drand_client = __toESM(require_drand_client());
@@ -2972,9 +2975,6 @@ function hashInput(input) {
 }
 
 // src/index.ts
-var import_promises = require("fs/promises");
-var import_drand_client2 = __toESM(require_drand_client());
-var import_path = __toESM(require("path"));
 main().catch((err) => {
   console.error(err);
   console.error(err.stack);
@@ -2986,10 +2986,8 @@ async function main() {
   const drawPrefix = process.env.OUTPUT_PREFIX || "draw-";
   const drandURL = process.env.DRAND_URL || "https://api.drand.sh";
   const drandClient = new import_drand_client2.HttpChainClient(new import_drand_client2.HttpCachingChain(drandURL));
-  console.log(inputDir);
-  console.log(outputDir);
-  const inputFiles = await fs.readdir(import_path.default.join(__dirname, inputDir));
-  const outputFiles = await fs.readdir(import_path.default.join(__dirname, outputDir));
+  const inputFiles = await fs.readdir(path.join(__dirname, inputDir));
+  const outputFiles = await fs.readdir(path.join(__dirname, outputDir));
   for (let inputFile of inputFiles) {
     const outputFilename = `${drawPrefix}${inputFile}`;
     if (outputFiles.includes(outputFilename)) {
@@ -2997,10 +2995,14 @@ async function main() {
       continue;
     }
     console.log(`processing ${inputFile}`);
-    const contents = await (0, import_promises.readFile)(import_path.default.join(inputDir, inputFile));
+    const contents = await (0, import_promises.readFile)(path.join(inputDir, inputFile));
     const lines = contents.toString().split("\n");
-    const selectionOutput = await select({ count: 1, values: lines, drandClient });
-    await fs.writeFile(import_path.default.join(outputDir, outputFilename), JSON.stringify(selectionOutput));
+    const selectionOutput = await select({
+      count: 1,
+      values: lines,
+      drandClient
+    });
+    await fs.writeFile(path.join(outputDir, outputFilename), JSON.stringify(selectionOutput));
     console.log(`created ${outputFilename}`);
   }
 }
