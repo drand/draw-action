@@ -1,8 +1,8 @@
 import * as fs from "fs/promises"
-import {select} from "./select"
+import * as path from "path"
 import {readFile} from "fs/promises"
 import {HttpCachingChain, HttpChainClient} from "drand-client"
-import path from "path"
+import {select} from "./select"
 
 main().catch(err => {
     console.error(err);
@@ -16,9 +16,6 @@ async function main(): Promise<void> {
     const drawPrefix = process.env.OUTPUT_PREFIX || "draw-"
     const drandURL = process.env.DRAND_URL || "https://api.drand.sh"
     const drandClient = new HttpChainClient(new HttpCachingChain(drandURL))
-
-    console.log(inputDir)
-    console.log(outputDir)
 
     const inputFiles = await fs.readdir(path.join(__dirname, inputDir))
     const outputFiles = await fs.readdir(path.join(__dirname, outputDir))
@@ -34,7 +31,11 @@ async function main(): Promise<void> {
         console.log(`processing ${inputFile}`)
         const contents = await readFile(path.join(inputDir, inputFile))
         const lines = contents.toString().split("\n")
-        const selectionOutput = await select({count: 1, values: lines, drandClient: drandClient})
+        const selectionOutput = await select({
+            count: 1,
+            values: lines,
+            drandClient: drandClient
+        })
         await fs.writeFile(path.join(outputDir, outputFilename), JSON.stringify(selectionOutput))
         console.log(`created ${outputFilename}`)
     }
