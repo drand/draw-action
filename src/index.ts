@@ -19,6 +19,7 @@ async function main(): Promise<void> {
     const outputDir = core.getInput("outputDir") ?? "."
     const drawPrefix = core.getInput("drawPrefix") ?? "draw-"
     const drandURL = core.getInput("drandURL") ?? "https://api.drand.sh"
+    const count = Number.parseInt(core.getInput("count") ?? "1")
     const gitRepo = process.env.GITHUB_WORKSPACE
     const drandClient = new HttpChainClient(new HttpCachingChain(drandURL))
 
@@ -42,7 +43,7 @@ async function main(): Promise<void> {
             .filter(it => it.trim() !== "")
 
         const selectionOutput = await select({
-            count: 1,
+            count,
             values: lines,
             drandClient: drandClient
         })

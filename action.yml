@@ -1,5 +1,5 @@
 name: "drand draw"
-description: "Draw items from a file using drand"
+description: "Draw items from files in a folder using drand"
 author: "drand.love"
 inputs:
   inputDir:
@@ -18,6 +18,10 @@ inputs:
     description: "The drand endpoint you wish to use for the draw. The default is `https://api.drand.sh`"
     required: false
     default: "https://api.drand.sh"
+  count:
+    description: "The number of items you wish to draw from each file. The default is `1`"
+    required: false
+    default: "1"
 runs:
   using: "node16"
   main: "index.js"

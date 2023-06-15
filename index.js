@@ -11107,6 +11107,7 @@ async function main() {
   const outputDir = core.getInput("outputDir") ?? ".";
   const drawPrefix = core.getInput("drawPrefix") ?? "draw-";
   const drandURL = core.getInput("drandURL") ?? "https://api.drand.sh";
+  const count = Number.parseInt(core.getInput("count") ?? "1");
   const gitRepo = process.env.GITHUB_WORKSPACE;
   const drandClient = new import_drand_client2.HttpChainClient(new import_drand_client2.HttpCachingChain(drandURL));
   const inputFiles = await fs2.readdir(path.join(gitRepo, inputDir));
@@ -11121,7 +11122,7 @@ async function main() {
     const contents = await (0, import_promises.readFile)(path.join(gitRepo, inputDir, inputFile));
     const lines = contents.toString().split("\n").filter((it) => it.trim() !== "");
     const selectionOutput = await select({
-      count: 1,
+      count,
       values: lines,
       drandClient
     });
