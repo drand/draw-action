@@ -14,10 +14,12 @@ main().catch(err => {
     process.exit(err.code || -1);
 })
 
+
 async function main(): Promise<void> {
     const inputDir = core.getInput("inputDir") ?? "."
     const outputDir = core.getInput("outputDir") ?? "."
-    const drawPrefix = core.getInput("drawPrefix") ?? "draw-"
+    const prefix = core.getInput("drawPrefix") ?? "draw-"
+    const name = core.getInput("name") ?? ""
     const drandURL = core.getInput("drandURL") ?? "https://api.drand.sh"
     const count = Number.parseInt(core.getInput("count") ?? "1")
     const gitRepo = process.env.GITHUB_WORKSPACE
@@ -27,27 +29,61 @@ async function main(): Promise<void> {
     const outputFiles = await fs.readdir(path.join(gitRepo, outputDir))
 
     for (let inputFile of inputFiles) {
-        // we don't want to redo draws that have already been done
-        const outputFilename = `${drawPrefix}${inputFile}`
-        if (outputFiles.includes(outputFilename)) {
-            console.log(`skipping ${outputFilename}`)
-            continue
-        }
-
-        console.log(`processing ${inputFile}`)
-        const contents = await readFile(path.join(gitRepo, inputDir, inputFile))
-
-        // we trim any empty entries in case of trailing newlines
-        const lines = contents.toString()
-            .split("\n")
-            .filter(it => it.trim() !== "")
-
-        const selectionOutput = await select({
-            count,
-            values: lines,
-            drandClient: drandClient
-        })
-        await fs.writeFile(path.join(gitRepo, outputDir, outputFilename), JSON.stringify(selectionOutput))
-        console.log(`created ${outputFilename}`)
+        await writeDraw({prefix, inputFile, outputFiles, gitRepo, inputDir, count, drandClient, name, outputDir})
     }
+}
+
+type DrawOptions = {
+    name: string
+    prefix: string,
+    inputFile: string,
+    outputDir: string
+    outputFiles: string[],
+    gitRepo: string,
+    inputDir: string,
+    count: number
+    drandClient: HttpChainClient
+}
+
+async function writeDraw(options: DrawOptions) {
+    const {prefix, inputFile, outputFiles, gitRepo, inputDir, count, drandClient, name, outputDir} = options
+    // we don't want to redo draws that have already been done
+    const outputFilename = `${prefix}${inputFile}`
+    if (outputFiles.includes(outputFilename)) {
+        console.log(`skipping ${outputFilename}`)
+        return
+    }
+
+    console.log(`processing ${inputFile}`)
+    const contents = await readFile(path.join(gitRepo, inputDir, inputFile))
+
+    // we trim any empty entries in case of trailing newlines
+    const lines = contents.toString()
+        .split("\n")
+        .filter(it => it.trim() !== "")
+
+    const selectionOutput = await select({
+        count,
+        values: lines,
+        drandClient: drandClient
+    })
+
+    const fileOutput: FileOutput = {
+        time: Date.now(),
+        name,
+        total: lines.length,
+        ...selectionOutput
+    }
+    await fs.writeFile(path.join(gitRepo, outputDir, outputFilename), JSON.stringify(fileOutput))
+    console.log(`created ${outputFilename}`)
+}
+
+export type FileOutput = {
+    time: number
+    name: string
+    total: number
+    hashedInput: string
+    winners: Array<string>
+    randomness: string
+    round: number
 }

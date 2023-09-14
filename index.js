@@ -9392,6 +9392,8 @@ var require_drand_client = __commonJS({
 });
 
 // src/index.ts
+var src_exports = {};
+module.exports = __toCommonJS(src_exports);
 var fs2 = __toESM(require("fs/promises"));
 var path = __toESM(require("path"));
 var core = __toESM(require_core());
@@ -11105,7 +11107,8 @@ main().catch((err) => {
 async function main() {
   const inputDir = core.getInput("inputDir") ?? ".";
   const outputDir = core.getInput("outputDir") ?? ".";
-  const drawPrefix = core.getInput("drawPrefix") ?? "draw-";
+  const prefix = core.getInput("drawPrefix") ?? "draw-";
+  const name = core.getInput("name") ?? "";
   const drandURL = core.getInput("drandURL") ?? "https://api.drand.sh";
   const count = Number.parseInt(core.getInput("count") ?? "1");
   const gitRepo = process.env.GITHUB_WORKSPACE;
@@ -11113,22 +11116,32 @@ async function main() {
   const inputFiles = await fs2.readdir(path.join(gitRepo, inputDir));
   const outputFiles = await fs2.readdir(path.join(gitRepo, outputDir));
   for (let inputFile of inputFiles) {
-    const outputFilename = `${drawPrefix}${inputFile}`;
-    if (outputFiles.includes(outputFilename)) {
-      console.log(`skipping ${outputFilename}`);
-      continue;
-    }
-    console.log(`processing ${inputFile}`);
-    const contents = await (0, import_promises.readFile)(path.join(gitRepo, inputDir, inputFile));
-    const lines = contents.toString().split("\n").filter((it) => it.trim() !== "");
-    const selectionOutput = await select({
-      count,
-      values: lines,
-      drandClient
-    });
-    await fs2.writeFile(path.join(gitRepo, outputDir, outputFilename), JSON.stringify(selectionOutput));
-    console.log(`created ${outputFilename}`);
+    await writeDraw({ prefix, inputFile, outputFiles, gitRepo, inputDir, count, drandClient, name, outputDir });
   }
+}
+async function writeDraw(options) {
+  const { prefix, inputFile, outputFiles, gitRepo, inputDir, count, drandClient, name, outputDir } = options;
+  const outputFilename = `${prefix}${inputFile}`;
+  if (outputFiles.includes(outputFilename)) {
+    console.log(`skipping ${outputFilename}`);
+    return;
+  }
+  console.log(`processing ${inputFile}`);
+  const contents = await (0, import_promises.readFile)(path.join(gitRepo, inputDir, inputFile));
+  const lines = contents.toString().split("\n").filter((it) => it.trim() !== "");
+  const selectionOutput = await select({
+    count,
+    values: lines,
+    drandClient
+  });
+  const fileOutput = {
+    time: Date.now(),
+    name,
+    total: lines.length,
+    ...selectionOutput
+  };
+  await fs2.writeFile(path.join(gitRepo, outputDir, outputFilename), JSON.stringify(fileOutput));
+  console.log(`created ${outputFilename}`);
 }
 /*! Bundled license information:
 
