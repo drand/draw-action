@@ -4,6 +4,10 @@ A github action for drawing items from a file randomly.
 
 ## configuration
 
+- `name`
+The name of the draw in the output file (useful if you wish to don't want to rely on the filename)
+- `drawPrefix`
+The prefix for any files in a dir you wish to draw from. The default is "draw-"
 - `inputDir`
 The directory of files you wish to choose randomly from. The default is `.`
 - `outputDir`
