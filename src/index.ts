@@ -1,10 +1,11 @@
 import * as fs from "fs/promises"
 import * as path from "path"
-import * as core from "@actions/core"
-import fetch from "node-fetch"
+// import fetch from "node-fetch"
 import {readFile} from "fs/promises"
-import {HttpCachingChain, HttpChainClient} from "drand-client"
-import {select} from "./select"
+import {fetchBeacon, HttpChainClient, roundAt} from "drand-client"
+import {select, SelectionOutput} from "./select"
+import {retry} from "./util"
+import {parseGithubOptions} from "./options"
 // @ts-ignore
 global.fetch = fetch
 
@@ -14,68 +15,41 @@ main().catch(err => {
     process.exit(err.code || -1);
 })
 
-
 async function main(): Promise<void> {
-    const inputDir = core.getInput("inputDir") ?? "."
-    const outputDir = core.getInput("outputDir") ?? "."
-    const prefix = core.getInput("drawPrefix") ?? "draw-"
-    const name = core.getInput("name") ?? ""
-    const drandURL = core.getInput("drandURL") ?? "https://api.drand.sh"
-    const count = Number.parseInt(core.getInput("count") ?? "1")
-    const gitRepo = process.env.GITHUB_WORKSPACE
-    const drandClient = new HttpChainClient(new HttpCachingChain(drandURL))
+    const draws = await parseGithubOptions()
 
-    const inputFiles = await fs.readdir(path.join(gitRepo, inputDir))
-    const outputFiles = await fs.readdir(path.join(gitRepo, outputDir))
-
-    for (let inputFile of inputFiles) {
-        await writeDraw({prefix, inputFile, outputFiles, gitRepo, inputDir, count, drandClient, name, outputDir})
+    for (let draw of draws) {
+        const {prefix, inputFile, outputFiles, gitRepo, inputDir, count, drandClient, name, outputDir} = draw
+        // we don't want to redo draws that have already been done
+        const outputFilename = `${prefix}${inputFile}`
+        if (outputFiles.includes(outputFilename)) {
+            console.log(`skipping ${outputFilename}`)
+            return
+        }
+        const drawItems = await readDrawItems(inputFile, gitRepo, inputDir)
+        const selectionOutput = await drawWithDrand(drandClient, count, drawItems)
+        await writeSuccessfulDraw(name, drawItems, selectionOutput, gitRepo, outputDir, outputFilename)
     }
 }
 
-type DrawOptions = {
-    name: string
-    prefix: string,
-    inputFile: string,
-    outputDir: string
-    outputFiles: string[],
-    gitRepo: string,
-    inputDir: string,
-    count: number
-    drandClient: HttpChainClient
-}
-
-async function writeDraw(options: DrawOptions) {
-    const {prefix, inputFile, outputFiles, gitRepo, inputDir, count, drandClient, name, outputDir} = options
-    // we don't want to redo draws that have already been done
-    const outputFilename = `${prefix}${inputFile}`
-    if (outputFiles.includes(outputFilename)) {
-        console.log(`skipping ${outputFilename}`)
-        return
-    }
-
+async function readDrawItems(inputFile: string, gitRepo: string, inputDir: string) {
     console.log(`processing ${inputFile}`)
     const contents = await readFile(path.join(gitRepo, inputDir, inputFile))
 
     // we trim any empty entries in case of trailing newlines
-    const lines = contents.toString()
+    return contents.toString()
         .split("\n")
         .filter(it => it.trim() !== "")
+}
 
-    const selectionOutput = await select({
-        count,
-        values: lines,
-        drandClient: drandClient
-    })
+export async function drawWithDrand(drandClient: HttpChainClient, count: number, values: Array<string>) {
+    const chainInfo = await drandClient.chain().info()
+    const nextRound = roundAt(Date.now(), chainInfo) + 1
 
-    const fileOutput: FileOutput = {
-        time: Date.now(),
-        name,
-        total: lines.length,
-        ...selectionOutput
-    }
-    await fs.writeFile(path.join(gitRepo, outputDir, outputFilename), JSON.stringify(fileOutput))
-    console.log(`created ${outputFilename}`)
+    // let's get the chosen random number from drand; try up to 35 times as it's more than the `default` network period
+    const beacon = await retry(35, () => fetchBeacon(drandClient, nextRound))
+
+    return select(count, values, beacon)
 }
 
 export type FileOutput = {
@@ -86,4 +60,15 @@ export type FileOutput = {
     winners: Array<string>
     randomness: string
     round: number
+}
+
+async function writeSuccessfulDraw(name: string, drawItems: string[], selectionOutput: SelectionOutput, gitRepo: string, outputDir: string, outputFilename: string) {
+    const fileOutput: FileOutput = {
+        time: Date.now(),
+        name,
+        total: drawItems.length,
+        ...selectionOutput
+    }
+    await fs.writeFile(path.join(gitRepo, outputDir, outputFilename), JSON.stringify(fileOutput))
+    console.log(`created ${outputFilename}`)
 }

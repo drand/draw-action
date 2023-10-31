@@ -1,4 +1,4 @@
-import {ChainClient, fetchBeaconByTime} from "drand-client"
+import {ChainClient, fetchBeaconByTime, RandomnessBeacon} from "drand-client"
 import {sha256} from "@noble/hashes/sha256"
 
 export type SelectionOptions = {
@@ -14,16 +14,16 @@ export type SelectionOutput = {
     round: number
 }
 
-export async function select(options: SelectionOptions): Promise<SelectionOutput> {
+export async function select(count: number, values: Array<string>, beacon: RandomnessBeacon): Promise<SelectionOutput> {
     // sort the values to ensure deterministic behaviour and avoid
     // attackers being able to modify list ordering to bias the result
-    const sortedValues = options.values.slice().sort()
+    const sortedValues = values.slice().sort()
     // we generate a hash of that list as an input for the selection process
     // and also an output for transparency
     const hashedInput = hashInput(sortedValues)
 
     // if the count is 0, return no winners
-    if (options.count === 0) {
+    if (count === 0) {
         return {
             round: 0,
             hashedInput,
@@ -33,17 +33,14 @@ export async function select(options: SelectionOptions): Promise<SelectionOutput
     }
 
     // if we're picking equal or more values than exist, return them all
-    if (options.count >= options.values.length) {
+    if (count >= values.length) {
         return {
             round: 0,
             hashedInput,
-            winners: options.values,
+            winners: values,
             randomness: ""
         }
     }
-
-    // let's get the chosen random number from drand
-    const beacon = await fetchBeaconByTime(options.drandClient, Date.now())
 
     // We sort the values lexicographically to ensure repeatability
     // we set our initial randomness as a hash of the list of values and the drand randomness,
@@ -52,7 +49,7 @@ export async function select(options: SelectionOptions): Promise<SelectionOutput
     // We then draw the value for that index from our `remainingValues` array,
     // remove it from that array, and repeat the process until we have no draws left to do
     let remainingValues = sortedValues
-    let remainingDraws = options.count
+    let remainingDraws = count
     let currentRandomness: Uint8Array = sha256.create()
         .update(hashedInput)
         .update(Buffer.from(beacon.randomness, "hex"))
