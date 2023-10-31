@@ -1,13 +1,10 @@
 import * as fs from "fs/promises"
 import * as path from "path"
-// import fetch from "node-fetch"
 import {readFile} from "fs/promises"
 import {fetchBeacon, HttpChainClient, roundAt} from "drand-client"
 import {select, SelectionOutput} from "./select"
 import {retry} from "./util"
 import {parseGithubOptions} from "./options"
-// @ts-ignore
-global.fetch = fetch
 
 main().catch(err => {
     console.error(err);
